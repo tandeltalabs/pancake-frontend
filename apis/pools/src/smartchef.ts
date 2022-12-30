@@ -1,24 +1,14 @@
-import { FixedNumber } from '@ethersproject/bignumber'
+import { ChainId, Currency, CurrencyAmount, Token } from '@pancakeswap/sdk'
 import { StaticJsonRpcProvider } from '@ethersproject/providers'
+import { BUSD_BSC } from '@pancakeswap/tokens'
+import { FixedNumber } from '@ethersproject/bignumber'
+import { getAllCommonPairs, getBestTradeExactIn, Trade } from '@pancakeswap/smart-router/evm'
 import { formatUnits } from '@ethersproject/units'
-import { createMulticall } from '@pancakeswap/multicall'
 import { GraphQLClient } from 'graphql-request'
 import uniqBy from 'lodash/uniqBy'
+import { createMulticall } from '@pancakeswap/multicall'
 
-// love you defillama
-const llamaPriceUrl = 'https://coins.llama.fi/prices/current/'
-
-const getCoinsPrice = async (tokens: SmartChefToken[]) => {
-  const tokensString = tokens
-    .map((t) => {
-      return `bsc:${t.id}`
-    })
-    .join(',')
-  const data = await fetch(`${llamaPriceUrl}${tokensString}`)
-  const json = await data.json<{ coins: Record<string, { price: number }> }>()
-
-  return json.coins
-}
+const BUSD_AMOUNT = CurrencyAmount.fromRawAmount(BUSD_BSC, 1e18)
 
 const BSC_BLOCK_TIME = 3
 
@@ -53,6 +43,21 @@ const { multicallv2 } = createMulticall(() => bscProvider)
 const client = new GraphQLClient(URL, {
   fetch,
 })
+
+const getCurrencyPrice = async (currency: Currency) => {
+  const paris = await getAllCommonPairs(currency, BUSD_AMOUNT.currency, { provider: () => bscProvider })
+
+  const trade = await getBestTradeExactIn(BUSD_AMOUNT, currency, {
+    provider: () => bscProvider,
+    allCommonPairs: paris,
+  })
+
+  if (!trade) return null
+
+  const price = Trade.executionPrice(trade).invert().toSignificant(6)
+
+  return price
+}
 
 interface SmartChefToken {
   id: string
@@ -101,15 +106,24 @@ export const getActivePools = async () => {
   const stakeTokens = resp.smartChefs.map(({ stakeToken }) => stakeToken)
   const earnTokens = resp.smartChefs.map(({ earnToken }) => earnToken)
 
-  const tokensUniq = uniqBy([...stakeTokens, ...earnTokens], 'id')
+  const stakeTokensUniq = uniqBy(stakeTokens, 'id')
+  const earnTokensUniq = uniqBy(earnTokens, 'id')
 
-  const tokensPrice = await getCoinsPrice(tokensUniq)
+  const stakeTokensPrice = await Promise.all(
+    stakeTokensUniq.map((token) => getCurrencyPrice(new Token(ChainId.BSC, token.id, +token.decimals, token.symbol))),
+  )
+
+  const earnTokensPrice = await Promise.all(
+    earnTokensUniq.map((token) => getCurrencyPrice(new Token(ChainId.BSC, token.id, +token.decimals, token.symbol))),
+  )
 
   return resp.smartChefs.map((pool, i) => {
     const { stakeToken, earnToken } = pool
+    const findStakeTokenIndex = stakeTokensUniq.findIndex((t) => t.id === stakeToken.id)
+    const findEarnTokenIndex = earnTokensUniq.findIndex((t) => t.id === earnToken.id)
 
-    const stakeTokenPrice = tokensPrice[`bsc:${stakeToken.id}`].price
-    const earnTokenPrice = tokensPrice[`bsc:${earnToken.id}`].price
+    const stakeTokenPrice = stakeTokensPrice[findStakeTokenIndex]
+    const earnTokenPrice = earnTokensPrice[findEarnTokenIndex]
     const totalStakedFormatted = formatUnits(totalStaked[i][0], stakeToken.decimals)
 
     return {
@@ -118,7 +132,7 @@ export const getActivePools = async () => {
       earnTokenPrice,
       apr:
         stakeTokenPrice && earnTokenPrice && totalStakedFormatted
-          ? getPoolApr(String(stakeTokenPrice), String(earnTokenPrice), totalStakedFormatted, pool.reward)
+          ? getPoolApr(stakeTokenPrice, earnTokenPrice, totalStakedFormatted, pool.reward)
           : null,
       totalStaked: totalStakedFormatted,
     }
