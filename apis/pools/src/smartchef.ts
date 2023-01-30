@@ -126,14 +126,22 @@ export const getActivePools = async () => {
     const earnTokenPrice = earnTokensPrice[findEarnTokenIndex]
     const totalStakedFormatted = formatUnits(totalStaked[i][0], stakeToken.decimals)
 
+    let apr: string | null = '0'
+
+    try {
+      apr =
+        stakeTokenPrice && earnTokenPrice && totalStakedFormatted
+          ? getPoolApr(stakeTokenPrice, earnTokenPrice, totalStakedFormatted, pool.reward)
+          : null
+    } catch (error) {
+      console.log(pool, error)
+    }
+
     return {
       ...pool,
       stakeTokenPrice,
       earnTokenPrice,
-      apr:
-        stakeTokenPrice && earnTokenPrice && totalStakedFormatted
-          ? getPoolApr(stakeTokenPrice, earnTokenPrice, totalStakedFormatted, pool.reward)
-          : null,
+      apr,
       totalStaked: totalStakedFormatted,
     }
   })
