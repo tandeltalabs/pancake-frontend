@@ -32,7 +32,7 @@ const URL = 'https://api.thegraph.com/subgraphs/name/pancakeswap/smartchef'
 
 const bscProvider = new StaticJsonRpcProvider(
   {
-    url: 'https://nodes.pancakeswap.com',
+    url: 'https://nodes.pancakeswap.info',
     skipFetchSetup: true,
   },
   56,
