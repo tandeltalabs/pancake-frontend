@@ -55,8 +55,8 @@ export const farmsV3 = [
     pid: 7,
     lpSymbol: 'BUSD-CAKE NEW LP',
     lpAddress: '0x314abb46436b688c529e7e90c69eaf8549d60c1e',
-    token: bscTestnetTokens.cake,
-    quoteToken: bscTestnetTokens.busd,
+    token: bscTestnetTokens.busd,
+    quoteToken: bscTestnetTokens.cake,
     feeAmount: FeeAmount.HIGH,
   },
 ] satisfies FarmConfigV3[]
