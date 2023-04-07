@@ -144,7 +144,7 @@ const SingleFarmV3Card: React.FunctionComponent<
     }
   }, [unstakedModal.isOpen, unstakingTooltip])
 
-  const outOfRange = isPositionOutOfRange(pool?.tickCurrent, position)
+  const outOfRange = false
 
   return (
     <AtomBox {...atomBoxProps}>
