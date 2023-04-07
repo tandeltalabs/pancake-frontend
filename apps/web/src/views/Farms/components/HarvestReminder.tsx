@@ -182,8 +182,22 @@ export function HarvestReminder() {
     }
   }
 
-  console.log('needRetrigger', needRetrigger)
-  console.log('stakedUserInfos.data', stakedUserInfos.data)
+  console.log(
+    'needRetrigger',
+    needRetrigger?.map((r) =>
+      Object.entries(r).map(([key, value]) => ({
+        [key]: BigNumber.isBigNumber(value) ? value.toString() : value,
+      })),
+    ),
+  )
+  console.log(
+    'stakedUserInfos.data',
+    stakedUserInfos.data?.map((r) =>
+      Object.entries(r).map(([key, value]) => ({
+        [key]: BigNumber.isBigNumber(value) ? value.toString() : value,
+      })),
+    ),
+  )
 
   if (!triggerOnce && needRetrigger?.length > 0) {
     setTriggerOnce(true)
