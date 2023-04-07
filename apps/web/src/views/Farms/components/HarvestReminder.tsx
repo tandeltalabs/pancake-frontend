@@ -1,15 +1,20 @@
+import { useTranslation } from '@pancakeswap/localization'
 import { AtomBox } from '@pancakeswap/ui'
-import { Button, Modal, ModalV2, useModalV2 } from '@pancakeswap/uikit'
+import { AutoColumn, Button, Modal, ModalV2, useModalV2, useToast } from '@pancakeswap/uikit'
+import { MasterChefV3, Multicall, toHex } from '@pancakeswap/v3-sdk'
+import { ToastDescriptionWithTx } from 'components/Toast'
 import { BigNumber } from 'ethers'
 import { FormatTypes } from 'ethers/lib/utils'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import useActiveWeb3React from 'hooks/useActiveWeb3React'
+import useCatchTxError from 'hooks/useCatchTxError'
 import { useMasterchefV3 } from 'hooks/useContract'
+import useTransactionDeadline from 'hooks/useTransactionDeadline'
 import { useV3TokenIdsByAccount } from 'hooks/v3/useV3Positions'
 import { useMemo, useState } from 'react'
 import { useFarmsV3Public } from 'state/farmsV3/hooks'
-import { useContractReads } from 'wagmi'
-import { useFarmsV3BatchHarvest } from '../hooks/v3/useFarmV3Actions'
+import { calculateGasMargin } from 'utils'
+import { useContractReads, useSigner } from 'wagmi'
 
 const lmPoolAbi = [
   {
@@ -95,18 +100,89 @@ export function HarvestReminder() {
     enabled: isOverRewardGrowthGlobalUserInfos?.length > 0,
   })
 
-  const canHarvestToRetrigger = isOverRewardGrowthGlobalUserInfos?.filter((userInfo, i) => {
-    if (!getRewardGrowthInsides?.[i]) return false
-    return userInfo.rewardGrowthInside.gt(getRewardGrowthInsides[i])
+  const needRetrigger = isOverRewardGrowthGlobalUserInfos?.map((u, i) => {
+    let needReduce = false
+    const lmRewardGrowthInside = getRewardGrowthInsides?.[i]
+    const farm = farmsV3?.farmsWithPrice.find((f) => f.pid === (u.pid as BigNumber).toNumber())
+    if (lmRewardGrowthInside && farm) {
+      needReduce = BigNumber.from(lmRewardGrowthInside).gt(
+        // @ts-ignore
+        farm._rewardGrowthGlobalX128,
+      )
+    }
+    return {
+      ...u,
+      lmRewardGrowthInside,
+      needReduce,
+    }
   })
 
   const modal = useModalV2()
 
+  const { t } = useTranslation()
+  const { data: signer } = useSigner()
+  const { toastSuccess } = useToast()
+  const { loading: txLoading, fetchWithCatchTxError } = useCatchTxError()
+
+  const masterChefV3Address = useMasterchefV3()?.address
+  const deadline = useTransactionDeadline() // custom from users settings
+
   const [triggerOnce, setTriggerOnce] = useState(false)
 
-  const { harvesting, onHarvestAll } = useFarmsV3BatchHarvest()
+  // eslint-disable-next-line consistent-return
+  const handleUnStuckAll = async () => {
+    if (!needRetrigger) return null
+    const calldata = []
+    needRetrigger.forEach((userInfo) => {
+      if (userInfo.needReduce) {
+        calldata.push(
+          MasterChefV3.INTERFACE.encodeFunctionData('decreaseLiquidity', [
+            {
+              tokenId: toHex(userInfo.tokenId.toString()),
+              liquidity: toHex(1),
+              amount0Min: toHex(0),
+              amount1Min: toHex(0),
+              deadline: toHex(deadline.toString()),
+            },
+          ]),
+        )
+      }
+      calldata.push(
+        MasterChefV3.encodeHarvest({
+          to: account,
+          tokenId: userInfo.tokenId.toString(),
+        }),
+      )
+    })
 
-  if (!triggerOnce && canHarvestToRetrigger?.length > 0) {
+    const txn = {
+      to: masterChefV3Address,
+      data: Multicall.encodeMulticall(calldata.flat()),
+      value: toHex(0),
+    }
+
+    const resp = await fetchWithCatchTxError(() =>
+      signer.estimateGas(txn).then((estimate) => {
+        const newTxn = {
+          ...txn,
+          gasLimit: calculateGasMargin(estimate),
+        }
+
+        return signer.sendTransaction(newTxn)
+      }),
+    )
+
+    if (resp?.status) {
+      toastSuccess(
+        `${t('Harvested')}!`,
+        <ToastDescriptionWithTx txHash={resp.transactionHash}>
+          {t('Your %symbol% earnings have been sent to your wallet!', { symbol: 'CAKE' })}
+        </ToastDescriptionWithTx>,
+      )
+    }
+  }
+
+  if (!triggerOnce && needRetrigger?.length > 0) {
     setTriggerOnce(true)
     modal.onOpen()
   }
@@ -115,13 +191,28 @@ export function HarvestReminder() {
     <ModalV2 {...modal} closeOnOverlayClick>
       <Modal title="Harvest Reminder">
         <AtomBox>
+          <AutoColumn gap="16px">
+            {needRetrigger?.map((u) => {
+              return (
+                <div>
+                  <div>tokenId {u.tokenId.toString()}</div>
+                  <div>pid {u.pid.toString()}</div>
+                  <div>tickUpper {u.tickUpper}</div>
+                  <div>tickLower {u.tickLower}</div>
+                  <div>lmRewardGrowthInside {u.lmRewardGrowthInside.toString()}</div>
+                  <div>userInfo.rewardGrowthInside {u.rewardGrowthInside.toString()}</div>
+                  <div>needReduce {u.needReduce === true ? 'true' : 'false'}</div>
+                </div>
+              )
+            })}
+          </AutoColumn>
           <Button
-            disabled={harvesting}
+            disabled={txLoading}
             onClick={() => {
-              onHarvestAll(canHarvestToRetrigger.map((userInfo) => userInfo.tokenId.toString()))
+              handleUnStuckAll()
             }}
           >
-            {harvesting ? 'Harvesting...' : 'Harvest'}
+            {txLoading ? 'Harvesting...' : 'Harvest'}
           </Button>
         </AtomBox>
       </Modal>
