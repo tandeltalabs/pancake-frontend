@@ -182,6 +182,9 @@ export function HarvestReminder() {
     }
   }
 
+  console.log('needRetrigger', needRetrigger)
+  console.log('stakedUserInfos.data', stakedUserInfos.data)
+
   if (!triggerOnce && needRetrigger?.length > 0) {
     setTriggerOnce(true)
     modal.onOpen()
