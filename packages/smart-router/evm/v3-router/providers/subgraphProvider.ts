@@ -314,6 +314,7 @@ export function v3PoolSubgraphSelection(
       '0xABc643e4bb7C53d6a266fd226D332A493C881EF1',
       '0x5d9550E870D42Ae03Fab91508cC5722A80CF0b5e',
       '0xc0E0F94a79Aabc6c655f308Da21D6EbDE64b0995',
+      '0x4505ba2cEC9153F5651Eeb75Ffa407e7189aB912',
     ].includes(p.address)
   })
   // eslint-disable-next-line
