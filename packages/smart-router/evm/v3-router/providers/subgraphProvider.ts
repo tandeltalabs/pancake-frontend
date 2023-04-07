@@ -309,9 +309,12 @@ export function v3PoolSubgraphSelection(
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
   ].filter((p) => {
-    return !['0xe5435f5C76c2292F87d7746599fae0339e21a6C8', '0xABc643e4bb7C53d6a266fd226D332A493C881EF1'].includes(
-      p.address,
-    )
+    return ![
+      '0xe5435f5C76c2292F87d7746599fae0339e21a6C8',
+      '0xABc643e4bb7C53d6a266fd226D332A493C881EF1',
+      '0x5d9550E870D42Ae03Fab91508cC5722A80CF0b5e',
+      '0xc0E0F94a79Aabc6c655f308Da21D6EbDE64b0995',
+    ].includes(p.address)
   })
   // eslint-disable-next-line
   return pools.map(({ tvlUSD, ...rest }) => rest)
