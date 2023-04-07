@@ -103,6 +103,7 @@ export function HarvestReminder() {
   const needRetrigger = isOverRewardGrowthGlobalUserInfos?.map((u, i) => {
     let needReduce = false
     const lmRewardGrowthInside = getRewardGrowthInsides?.[i]
+    console.log(lmRewardGrowthInside, 'lmRewardGrowthInside')
     const farm = farmsV3?.farmsWithPrice.find((f) => f.pid === (u.pid as BigNumber).toNumber())
     if (lmRewardGrowthInside && farm) {
       needReduce = BigNumber.from(lmRewardGrowthInside).gt(
@@ -199,8 +200,8 @@ export function HarvestReminder() {
                   <div>pid {u.pid.toString()}</div>
                   <div>tickUpper {u.tickUpper}</div>
                   <div>tickLower {u.tickLower}</div>
-                  <div>lmRewardGrowthInside {u.lmRewardGrowthInside.toString()}</div>
-                  <div>userInfo.rewardGrowthInside {u.rewardGrowthInside.toString()}</div>
+                  <div>lmRewardGrowthInside {u.lmRewardGrowthInside?.toString()}</div>
+                  <div>userInfo.rewardGrowthInside {u.rewardGrowthInside?.toString()}</div>
                   <div>needReduce {u.needReduce === true ? 'true' : 'false'}</div>
                 </div>
               )
