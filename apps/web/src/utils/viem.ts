@@ -10,7 +10,7 @@ const clients = CHAINS.reduce((prev, cur) => {
     [cur.id]: createPublicClient({
       chain: cur,
       transport: http(PUBLIC_NODES[cur.id], {
-        timeout: 15_000,
+        timeout: 30_000,
       }),
     }),
   }
