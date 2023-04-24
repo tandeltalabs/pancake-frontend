@@ -108,14 +108,11 @@ export function useBestAMMTrade({ type = 'quoter', ...params }: useBestAMMTradeO
   const isWrapping = useIsWrapping(baseCurrency, currency, amount?.toExact())
 
   const isQuoterEnabled = useMemo(
-    () => Boolean(!isWrapping && (type === 'quoter' || type === 'auto')),
+    () => Boolean(!isWrapping && (type === 'quoter' || type === 'auto' || type === 'api')),
     [type, isWrapping],
   )
 
-  const isQuoterAPIEnabled = useMemo(
-    () => Boolean(!isWrapping && (type === 'api' || (isQuoterEnabled && !worker))),
-    [isWrapping, type, isQuoterEnabled],
-  )
+  const isQuoterAPIEnabled = isQuoterEnabled
 
   const isOffChainEnabled = useMemo(
     () => Boolean(!isWrapping && !isLowEndDevice && (type === 'offchain' || type === 'auto')),
