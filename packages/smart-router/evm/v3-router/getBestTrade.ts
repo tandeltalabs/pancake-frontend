@@ -13,6 +13,7 @@ interface TradeConfig {
   quoteProvider: QuoteProvider
   maxHops?: number
   maxSplits?: number
+  allowMixed?: boolean
   distributionPercent?: number
   allowedPoolTypes?: PoolType[]
   quoterOptimization?: boolean
@@ -59,7 +60,8 @@ async function getBestRoutes(
   tradeType: TradeType,
   {
     maxHops = 3,
-    maxSplits = 4,
+    allowMixed = true,
+    maxSplits = allowMixed ? 4 : 2,
     distributionPercent = 5,
     poolProvider,
     quoteProvider,
@@ -80,7 +82,7 @@ async function getBestRoutes(
 
   let baseRoutes = computeAllRoutes(inputCurrency, outputCurrency, candidatePools, maxHops)
   // Do not support mix route on exact output
-  if (tradeType === TradeType.EXACT_OUTPUT) {
+  if (tradeType === TradeType.EXACT_OUTPUT || !allowMixed) {
     baseRoutes = baseRoutes.filter(({ type }) => type !== RouteType.MIXED)
   }
 

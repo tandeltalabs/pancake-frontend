@@ -224,6 +224,7 @@ function bestTradeHookFactory({
       pools: candidatePools,
       loading,
       syncing,
+      subgraphError,
     } = useCommonPools(baseCurrency || amount?.currency, currency, {
       blockNumber,
       allowInconsistentBlock: true,
@@ -232,6 +233,8 @@ function bestTradeHookFactory({
     const poolProvider = useMemo(() => SmartRouter.createStaticPoolProvider(candidatePools), [candidatePools])
     const deferQuotientRaw = useDeferredValue(amount?.quotient.toString())
     const deferQuotient = useDebounce(deferQuotientRaw, 500)
+
+    const allowMixed = !subgraphError
 
     const poolTypes = useMemo(() => {
       const types: PoolType[] = []
@@ -264,6 +267,7 @@ function bestTradeHookFactory({
         maxHops,
         maxSplits,
         poolTypes,
+        allowMixed,
       ],
       queryFn: async () => {
         const deferAmount = CurrencyAmount.fromRawAmount(amount.currency, deferQuotient)
@@ -282,6 +286,7 @@ function bestTradeHookFactory({
           quoteProvider,
           allowedPoolTypes: poolTypes,
           quoterOptimization,
+          allowMixed,
         })
         if (res) {
           SmartRouter.metric(
@@ -347,7 +352,7 @@ export const useBestAMMTradeFromQuoterApi = bestTradeHookFactory({
     amount,
     currency,
     tradeType,
-    { maxHops, maxSplits, gasPriceWei, allowedPoolTypes, poolProvider },
+    { maxHops, maxSplits, gasPriceWei, allowedPoolTypes, poolProvider, allowMixed },
   ) => {
     const candidatePools = await poolProvider.getCandidatePools(amount.currency, currency, {
       protocols: allowedPoolTypes,
@@ -368,6 +373,7 @@ export const useBestAMMTradeFromQuoterApi = bestTradeHookFactory({
         },
         gasPriceWei: typeof gasPriceWei !== 'function' ? gasPriceWei?.toString() : undefined,
         maxHops,
+        allowMixed,
         maxSplits,
         poolTypes: allowedPoolTypes,
         candidatePools: candidatePools.map(SmartRouter.Transformer.serializePool),
@@ -381,7 +387,12 @@ export const useBestAMMTradeFromQuoterApi = bestTradeHookFactory({
 })
 
 const createWorkerGetBestTrade = (quoteWorker: typeof worker): typeof SmartRouter.getBestTrade => {
-  return async (amount, currency, tradeType, { maxHops, maxSplits, allowedPoolTypes, poolProvider, gasPriceWei }) => {
+  return async (
+    amount,
+    currency,
+    tradeType,
+    { maxHops, maxSplits, allowedPoolTypes, poolProvider, gasPriceWei, allowMixed },
+  ) => {
     const candidatePools = await poolProvider.getCandidatePools(amount.currency, currency, {
       protocols: allowedPoolTypes,
     })
@@ -397,6 +408,7 @@ const createWorkerGetBestTrade = (quoteWorker: typeof worker): typeof SmartRoute
       gasPriceWei: typeof gasPriceWei !== 'function' ? gasPriceWei?.toString() : undefined,
       maxHops,
       maxSplits,
+      allowMixed,
       poolTypes: allowedPoolTypes,
       candidatePools: candidatePools.map(SmartRouter.Transformer.serializePool),
     })

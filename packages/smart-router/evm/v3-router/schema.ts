@@ -89,6 +89,7 @@ export const zRouterPostParams = z
     gasPriceWei: zBigNumber.optional(),
     maxHops: z.number().optional(),
     maxSplits: z.number().optional(),
+    allowMixed: z.boolean().optional(),
     blockNumber: zBigNumber.optional(),
     poolTypes: zPoolTypes.optional(),
   })

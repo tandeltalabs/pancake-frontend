@@ -20,6 +20,7 @@ export interface PoolsWithState {
   loading: boolean
   syncing: boolean
   blockNumber?: number
+  subgraphError: boolean
 }
 
 export interface CommonPoolsParams {
@@ -91,6 +92,7 @@ function commonPoolsHookCreator({ useV3Pools }: FactoryOptions) {
       blockNumber: consistentBlockNumber,
       loading,
       syncing,
+      subgraphError: Boolean(error),
     }
   }
 }
