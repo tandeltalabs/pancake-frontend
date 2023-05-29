@@ -46,7 +46,6 @@ import {
   getV3MigratorContract,
 } from 'utils/contractHelpers'
 
-// Imports below migrated from Exchange useContract.ts
 import { ChainId, WNATIVE, pancakePairV2ABI } from '@pancakeswap/sdk'
 import { CAKE } from '@pancakeswap/tokens'
 import { nonfungiblePositionManagerABI } from '@pancakeswap/v3-sdk'
@@ -305,8 +304,9 @@ export function useBCakeFarmBoosterContract() {
 }
 
 export function useBCakeFarmBoosterContractV3() {
+  const { chainId } = useActiveChainId()
   const { data: signer } = useWalletClient()
-  return useMemo(() => getBCakeFarmBoosterV3Contract(signer), [signer])
+  return useMemo(() => getBCakeFarmBoosterV3Contract(signer, chainId), [signer, chainId])
 }
 
 export function useBCakeFarmBoosterProxyFactoryContract() {
@@ -358,7 +358,7 @@ export function useV3NFTPositionManagerContract() {
 export function useMasterchefV3() {
   const { chainId } = useActiveChainId()
   const { data: signer } = useWalletClient()
-  return getMasterChefV3Contract(signer, chainId)
+  return useMemo(() => getMasterChefV3Contract(signer, chainId), [signer, chainId])
 }
 
 export function useV3MigratorContract() {
