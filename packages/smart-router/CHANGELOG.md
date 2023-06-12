@@ -1,5 +1,12 @@
 # @pancakeswap/smart-router
 
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [e8a1a97a3]
+  - @pancakeswap/v3-sdk@2.0.1
+
 ## 3.0.0
 
 ### Major Changes

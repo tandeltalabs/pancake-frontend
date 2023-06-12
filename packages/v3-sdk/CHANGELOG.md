@@ -1,5 +1,11 @@
 # @pancakeswap/v3-sdk
 
+## 2.0.1
+
+### Patch Changes
+
+- e8a1a97a3: fix: Crash when single asset deposit
+
 ## 2.0.0
 
 ### Major Changes
